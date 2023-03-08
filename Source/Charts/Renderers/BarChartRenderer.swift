@@ -432,14 +432,30 @@ open class BarChartRenderer: BarLineScatterCandleBubbleRenderer
             context.saveGState()
             defer { context.restoreGState() }
             
+            guard barIndex.isMultiple(of: stackSize) else {
+                continue
+            }
+            
             guard viewPortHandler.isInBoundsLeft(barRect.maxX) else { continue }
             guard viewPortHandler.isInBoundsRight(barRect.minX) else { break }
+            
+            if isStacked, let highestRect = buffer.min(by: { $0.minY < $1.minY }) {
+                let maxHeight = buffer[barIndex..<(barIndex + stackSize)].reduce(0, { $0 + $1.height })
+                
+                let backgroundRect = CGRect(x: barRect.minX, y: highestRect.minY, width: barRect.width, height: maxHeight)
+                
+                let bezierPath = UIBezierPath(roundedRect: backgroundRect, cornerRadius: dataSet.barCornerRadius)
+                
+                context.setFillColor(dataSet.barShadowColor.cgColor)
+                
+                context.addPath(bezierPath.cgPath)
+                context.drawPath(using: .fill)
+            }
             
             let bezierPath = UIBezierPath(roundedRect: barRect, cornerRadius: dataSet.barCornerRadius)
             
             context.beginPath()
             context.addPath(bezierPath.cgPath)
-//            context.addRect(barRect)
             context.clip()
             
             let startGradient = CGPoint(x: barRect.minX, y: barRect.minY)
